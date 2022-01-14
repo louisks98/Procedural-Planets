@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include "shader.h"
+#include "sphere.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -81,7 +82,8 @@ int main()
 	
 
 	Shader shader{ "shaders/vertex.glsl", "shaders/fragment.glsl" };
-
+	Sphere sphere{ 1, 5 };
+	float color[] = { 50.0f / 255, 168.0f / 255, 82.0f / 255 };
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // wireframe
 	while (!glfwWindowShouldClose(window))
 	{
@@ -91,7 +93,8 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		shader.use();
-
+		shader.setVec3("ourColor", color);
+		//sphere.draw();
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		glBindVertexArray(0);

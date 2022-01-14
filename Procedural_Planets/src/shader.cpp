@@ -33,6 +33,11 @@ void Shader::setFloat(const std::string& name, float value) const
 	glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
 }
 
+void Shader::setVec3(const std::string& name, float values[3]) const
+{
+	glUniform3f(glGetUniformLocation(ID, name.c_str()), values[0], values[1], values[2]);
+}
+
 string Shader::readFile(const char* path)
 {
 	string code;
