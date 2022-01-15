@@ -22,8 +22,14 @@ void Sphere::draw()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, getIndexSize(), indices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     glBindVertexArray(VAO);
     //glDrawArrays(GL_TRIANGLES, 0, vertices.size());
@@ -55,8 +61,8 @@ void Sphere::buildSphere()
             z = unitVertices[k + 2];
             s = (float)j / (vertexCountPerRow - 1);
             addVertex(x * radius, y * radius, z * radius);
-            //addNormal(x, y, z);
-            //addTexCoord(s, t);
+            addNormal(x, y, z);
+            addTexCoord(s, t);
 
             // add indices
             if (i < (vertexCountPerRow - 1) && j < (vertexCountPerRow - 1))
@@ -83,8 +89,8 @@ void Sphere::buildSphere()
     for (int i = 0, j = 0; i < vertexSize; i += 3, j += 2)
     {
         addVertex(-vertices[i], vertices[i + 1], -vertices[i + 2]);
-        //addTexCoord(texCoords[j], texCoords[j + 1]);
-        //addNormal(-normals[i], normals[i + 1], -normals[i + 2]);
+        addTexCoord(texCoords[j], texCoords[j + 1]);
+        addNormal(-normals[i], normals[i + 1], -normals[i + 2]);
     }
     for (int i = 0; i < indexSize; ++i)
     {
@@ -104,8 +110,8 @@ void Sphere::buildSphere()
     for (int i = 0, j = 0; i < vertexSize; i += 3, j += 2)
     {
         addVertex(-vertices[i + 2], vertices[i], -vertices[i + 1]);
-        //addTexCoord(texCoords[j], texCoords[j + 1]);
-        //addNormal(-normals[i + 2], normals[i], -normals[i + 1]);
+        addTexCoord(texCoords[j], texCoords[j + 1]);
+        addNormal(-normals[i + 2], normals[i], -normals[i + 1]);
     }
     for (int i = 0; i < indexSize; ++i)
     {
@@ -122,8 +128,8 @@ void Sphere::buildSphere()
     for (int i = 0, j = 0; i < vertexSize; i += 3, j += 2)
     {
         addVertex(-vertices[i + 2], -vertices[i], vertices[i + 1]);
-        //addTexCoord(texCoords[j], texCoords[j + 1]);
-        //addNormal(-normals[i + 2], -normals[i], normals[i + 1]);
+        addTexCoord(texCoords[j], texCoords[j + 1]);
+        addNormal(-normals[i + 2], -normals[i], normals[i + 1]);
     }
     for (int i = 0; i < indexSize; ++i)
     {
@@ -143,8 +149,8 @@ void Sphere::buildSphere()
     for (int i = 0, j = 0; i < vertexSize; i += 3, j += 2)
     {
         addVertex(-vertices[i + 2], vertices[i + 1], vertices[i]);
-        //addTexCoord(texCoords[j], texCoords[j + 1]);
-        //addNormal(-normals[i + 2], normals[i + 1], normals[i]);
+        addTexCoord(texCoords[j], texCoords[j + 1]);
+        addNormal(-normals[i + 2], normals[i + 1], normals[i]);
     }
     for (int i = 0; i < indexSize; ++i)
     {
@@ -161,8 +167,8 @@ void Sphere::buildSphere()
     for (int i = 0, j = 0; i < vertexSize; i += 3, j += 2)
     {
         addVertex(vertices[i + 2], vertices[i + 1], -vertices[i]);
-        //addTexCoord(texCoords[j], texCoords[j + 1]);
-        //addNormal(normals[i + 2], normals[i + 1], -normals[i]);
+        addTexCoord(texCoords[j], texCoords[j + 1]);
+        addNormal(normals[i + 2], normals[i + 1], -normals[i]);
     }
     for (int i = 0; i < indexSize; ++i)
     {
@@ -257,4 +263,33 @@ void Sphere::addIndices(unsigned int i1, unsigned int i2, unsigned int i3)
 	indices.push_back(i1);
 	indices.push_back(i2);
 	indices.push_back(i3);
+}
+
+void Sphere::addNormal(float nx, float ny, float nz)
+{
+    normals.push_back(nx);
+    normals.push_back(ny);
+    normals.push_back(nz);
+}
+
+void Sphere::addNormals(const float n1[3], const float n2[3], const float n3[3], const float n4[3])
+{
+    normals.insert(normals.end(), n1, n1 + 3);
+    normals.insert(normals.end(), n2, n2 + 3);
+    normals.insert(normals.end(), n3, n3 + 3);
+    normals.insert(normals.end(), n4, n4 + 3);
+}
+
+void Sphere::addTexCoord(float s, float t)
+{
+    texCoords.push_back(s);
+    texCoords.push_back(t);
+}
+
+void Sphere::addTexCoords(const float t1[2], const float t2[2], const float t3[2], const float t4[2])
+{
+    texCoords.insert(texCoords.end(), t1, t1 + 2);
+    texCoords.insert(texCoords.end(), t2, t2 + 2);
+    texCoords.insert(texCoords.end(), t3, t3 + 2);
+    texCoords.insert(texCoords.end(), t4, t4 + 2);
 }
