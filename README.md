@@ -8,4 +8,4 @@
 
 First planet 
 
-![](Images\earth.gif)
+![](Images/earth.gif)
