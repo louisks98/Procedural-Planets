@@ -54,12 +54,12 @@ int main()
 
 
 	Shader shader{ "shaders/vertex.glsl", "shaders/fragment.glsl" };
-	Sphere sphere{ 1.0f, 36, 18};
+	Sphere sphere{ 1.0f, 5 };
 	float color[] = { 50.0f / 255, 168.0f / 255, 82.0f / 255 };
 	
 	//Texture texture1{ "textures/container.jpg" };
 	//Texture texture2{ "textures/awesomeface.png" };
-	Texture earth{ "textures/earth.jpg" };
+	//Texture earth{ "textures/earth.jpg" };
 
 	//shader.use();
 	//shader.setInt("texture1", 0);
@@ -90,11 +90,11 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		earth.use();
+		//earth.use();
 		shader.use();
-		model = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		shader.setMat4("model", model);
+		//model = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		//shader.setMat4("model", model);
 		sphere.draw();
 
 		//glBindVertexArray(VAO);

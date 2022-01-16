@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\geometry_sphere.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\shader.cpp" />
@@ -26,6 +27,7 @@
     <ClCompile Include="src\texture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\geometry_sphere.h" />
     <ClInclude Include="src\shader.h" />
     <ClInclude Include="src\sphere.h" />
     <ClInclude Include="src\stb_image.h" />
