@@ -31,7 +31,7 @@ void Texture::loadFile(std::string path)
     int height;
     int nbColorChannels;
 
-    stbi_set_flip_vertically_on_load(true);
+    //stbi_set_flip_vertically_on_load(true);
 
     data = stbi_load(path.data(), &width, &height, &nbColorChannels, 0);
     if (data)

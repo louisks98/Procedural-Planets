@@ -10,13 +10,14 @@
 class Sphere
 {
 public:
-	Sphere(float radius = 1.0f, int division = 3);
+	Sphere(float radius, int sectors, int stacks);
 
 	unsigned int getVertexCount() const { return (unsigned int)vertices.size() / 3; }
 	unsigned int getIndexCount() const { return (unsigned int)indices.size(); }
 
 	unsigned int getVertexSize() const { return (unsigned int)indices.size(); }
 	unsigned int getIndexSize() const { return (unsigned int)indices.size() * sizeof(unsigned int); }
+	unsigned int getInterleavedVertexSize() const { return (unsigned int)interleavedVertices.size() * sizeof(float); }
 
 	const std::vector<float> getVertices() { return vertices; }
 	const std::vector<unsigned int> getIndices() { return indices; }
@@ -35,16 +36,24 @@ private:
 	void addTexCoord(float s, float t);
 	void addTexCoords(const float t1[2], const float t2[2], const float t3[2], const float t4[2]);
 
+	void buildInterleavedVertices();
+
+	const int MIN_SECTOR_COUNT = 3;
+	const int MIN_STACK_COUNT = 2;
 
 	float radius;
-	int subdivision;
+	//int subdivision;
 	std::vector<float> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<float> normals;
 	std::vector<float> texCoords;
+	std::vector<float> interleavedVertices;
 
 	unsigned int vertexCountPerRow;
 	unsigned int vertexCountPerFace;
+
+	int sectorCount;
+	int stackCount;
 
 	unsigned int VAO;
 	unsigned int EBO;

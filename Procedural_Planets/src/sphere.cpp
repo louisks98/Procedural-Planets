@@ -1,12 +1,18 @@
 #include "sphere.h"
 #include <glad/glad.h>
 
-Sphere::Sphere(float radius, int division) : radius{ radius }, subdivision{division}
+Sphere::Sphere(float radius, int sectors, int stacks)
 {
-	vertexCountPerRow = (unsigned int)pow(2, division) + 1;
-	vertexCountPerFace = vertexCountPerRow * vertexCountPerRow;
+    this->radius = radius;
+    this->sectorCount = sectors;
+    if (sectors < MIN_SECTOR_COUNT)
+        this->sectorCount = MIN_SECTOR_COUNT;
+    this->stackCount = stacks;
+    if (sectors < MIN_STACK_COUNT)
+        this->sectorCount = MIN_STACK_COUNT;
 
 	buildSphere();
+    buildInterleavedVertices();
 
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -17,18 +23,18 @@ void Sphere::draw()
 {
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, getVertexSize(), vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, getInterleavedVertexSize(), interleavedVertices.data(), GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, getIndexSize(), indices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 32, (void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 32, (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 32, (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
     glBindVertexArray(VAO);
@@ -39,208 +45,74 @@ void Sphere::draw()
 
 void Sphere::buildSphere()
 {
-    std::vector<float> unitVertices = getUnitPositiveX(vertexCountPerRow);
+    const float PI = acos(-1);
 
     // clear memory of prev arrays
     //clearArrays();
 
-    float x, y, z, s, t;
-    int k = 0, k1, k2;
+    float x, y, z, xy;                              // vertex position
+    float nx, ny, nz, lengthInv = 1.0f / radius;    // normal
+    float s, t;                                     // texCoord
 
-    // build +X face
-    for (unsigned int i = 0; i < vertexCountPerRow; ++i)
+    float sectorStep = 2 * PI / sectorCount;
+    float stackStep = PI / stackCount;
+    float sectorAngle, stackAngle;
+
+    for (int i = 0; i <= stackCount; ++i)
     {
-        k1 = i * vertexCountPerRow;     // index for curr row
-        k2 = k1 + vertexCountPerRow;    // index for next row
-        t = (float)i / (vertexCountPerRow - 1);
+        stackAngle = PI / 2 - i * stackStep;        // starting from pi/2 to -pi/2
+        xy = radius * cosf(stackAngle);             // r * cos(u)
+        z = radius * sinf(stackAngle);              // r * sin(u)
 
-        for (unsigned int j = 0; j < vertexCountPerRow; ++j, k += 3, ++k1, ++k2)
+        // add (sectorCount+1) vertices per stack
+        // the first and last vertices have same position and normal, but different tex coords
+        for (int j = 0; j <= sectorCount; ++j)
         {
-            x = unitVertices[k];
-            y = unitVertices[k + 1];
-            z = unitVertices[k + 2];
-            s = (float)j / (vertexCountPerRow - 1);
-            addVertex(x * radius, y * radius, z * radius);
-            addNormal(x, y, z);
-            addTexCoord(s, t);
+            sectorAngle = j * sectorStep;           // starting from 0 to 2pi
 
-            // add indices
-            if (i < (vertexCountPerRow - 1) && j < (vertexCountPerRow - 1))
+            // vertex position
+            x = xy * cosf(sectorAngle);             // r * cos(u) * cos(v)
+            y = xy * sinf(sectorAngle);             // r * cos(u) * sin(v)
+            addVertex(x, y, z);
+
+            // normalized vertex normal
+            nx = x * lengthInv;
+            ny = y * lengthInv;
+            nz = z * lengthInv;
+            addNormal(nx, ny, nz);
+
+            // vertex tex coord between [0, 1]
+            s = (float)j / sectorCount;
+            t = (float)i / stackCount;
+            addTexCoord(s, t);
+        }
+    }
+
+    // indices
+    //  k1--k1+1
+    //  |  / |
+    //  | /  |
+    //  k2--k2+1
+    unsigned int k1, k2;
+    for (int i = 0; i < stackCount; ++i)
+    {
+        k1 = i * (sectorCount + 1);     // beginning of current stack
+        k2 = k1 + sectorCount + 1;      // beginning of next stack
+
+        for (int j = 0; j < sectorCount; ++j, ++k1, ++k2)
+        {
+            // 2 triangles per sector excluding 1st and last stacks
+            if (i != 0)
             {
-                addIndices(k1, k2, k1 + 1);
-                addIndices(k1 + 1, k2, k2 + 1);
-                // lines: left and top
-                //lineIndices.push_back(k1);  // left
-                //lineIndices.push_back(k2);
-                //lineIndices.push_back(k1);  // top
-                //lineIndices.push_back(k1 + 1);
+                addIndices(k1, k2, k1 + 1);   // k1---k2---k1+1
+            }
+
+            if (i != (stackCount - 1))
+            {
+                addIndices(k1 + 1, k2, k2 + 1); // k1+1---k2---k2+1
             }
         }
     }
-
-    // array size and index for building next face
-    unsigned int startIndex;                    // starting index for next face
-    int vertexSize = (int)vertices.size();      // vertex array size of +X face
-    int indexSize = (int)indices.size();        // index array size of +X face
-    //int lineIndexSize = (int)lineIndices.size(); // line index size of +X face
-
-    // build -X face by negating x and z
-    startIndex = vertices.size() / 3;
-    for (int i = 0, j = 0; i < vertexSize; i += 3, j += 2)
-    {
-        addVertex(-vertices[i], vertices[i + 1], -vertices[i + 2]);
-        addTexCoord(texCoords[j], texCoords[j + 1]);
-        addNormal(-normals[i], normals[i + 1], -normals[i + 2]);
-    }
-    for (int i = 0; i < indexSize; ++i)
-    {
-        indices.push_back(startIndex + indices[i]);
-    }
-    //for (int i = 0; i < lineIndexSize; i += 4)
-    //{
-    //    // left and bottom lines
-    //    lineIndices.push_back(startIndex + lineIndices[i]);     // left
-    //    lineIndices.push_back(startIndex + lineIndices[i + 1]);
-    //    lineIndices.push_back(startIndex + lineIndices[i + 1]);  // bottom
-    //    lineIndices.push_back(startIndex + lineIndices[i + 1] + 1);
-    //}
-
-    // build +Y face by swapping x=>y, y=>-z, z=>-x
-    startIndex = vertices.size() / 3;
-    for (int i = 0, j = 0; i < vertexSize; i += 3, j += 2)
-    {
-        addVertex(-vertices[i + 2], vertices[i], -vertices[i + 1]);
-        addTexCoord(texCoords[j], texCoords[j + 1]);
-        addNormal(-normals[i + 2], normals[i], -normals[i + 1]);
-    }
-    for (int i = 0; i < indexSize; ++i)
-    {
-        indices.push_back(startIndex + indices[i]);
-    }
-    //for (int i = 0; i < lineIndexSize; ++i)
-    //{
-    //    // top and left lines (same as +X)
-    //    lineIndices.push_back(startIndex + lineIndices[i]);
-    //}
-
-    // build -Y face by swapping x=>-y, y=>z, z=>-x
-    startIndex = vertices.size() / 3;
-    for (int i = 0, j = 0; i < vertexSize; i += 3, j += 2)
-    {
-        addVertex(-vertices[i + 2], -vertices[i], vertices[i + 1]);
-        addTexCoord(texCoords[j], texCoords[j + 1]);
-        addNormal(-normals[i + 2], -normals[i], normals[i + 1]);
-    }
-    for (int i = 0; i < indexSize; ++i)
-    {
-        indices.push_back(startIndex + indices[i]);
-    }
-    //for (int i = 0; i < lineIndexSize; i += 4)
-    //{
-    //    // top and right lines
-    //    lineIndices.push_back(startIndex + lineIndices[i]); // top
-    //    lineIndices.push_back(startIndex + lineIndices[i + 3]);
-    //    lineIndices.push_back(startIndex + lineIndices[i] + 1); // right
-    //    lineIndices.push_back(startIndex + lineIndices[i + 1] + 1);
-    //}
-
-    // build +Z face by swapping x=>z, z=>-x
-    startIndex = vertices.size() / 3;
-    for (int i = 0, j = 0; i < vertexSize; i += 3, j += 2)
-    {
-        addVertex(-vertices[i + 2], vertices[i + 1], vertices[i]);
-        addTexCoord(texCoords[j], texCoords[j + 1]);
-        addNormal(-normals[i + 2], normals[i + 1], normals[i]);
-    }
-    for (int i = 0; i < indexSize; ++i)
-    {
-        indices.push_back(startIndex + indices[i]);
-    }
-    //for (int i = 0; i < lineIndexSize; ++i)
-    //{
-    //    // top and left lines (same as +X)
-    //    lineIndices.push_back(startIndex + lineIndices[i]);
-    //}
-
-    // build -Z face by swapping x=>-z, z=>x
-    startIndex = vertices.size() / 3;
-    for (int i = 0, j = 0; i < vertexSize; i += 3, j += 2)
-    {
-        addVertex(vertices[i + 2], vertices[i + 1], -vertices[i]);
-        addTexCoord(texCoords[j], texCoords[j + 1]);
-        addNormal(normals[i + 2], normals[i + 1], -normals[i]);
-    }
-    for (int i = 0; i < indexSize; ++i)
-    {
-        indices.push_back(startIndex + indices[i]);
-    }
-    //for (int i = 0; i < lineIndexSize; i += 4)
-    //{
-    //    // left and bottom lines
-    //    lineIndices.push_back(startIndex + lineIndices[i]);     // left
-    //    lineIndices.push_back(startIndex + lineIndices[i + 1]);
-    //    lineIndices.push_back(startIndex + lineIndices[i + 1]);   // bottom
-    //    lineIndices.push_back(startIndex + lineIndices[i + 1] + 1);
-    //}
-}
-
-std::vector<float> Sphere::getUnitPositiveX(unsigned int pointsPerRow)
-{
-    const float DEG2RAD = acos(-1) / 180.0f;
-
-    std::vector<float> vertices;
-    float n1[3];        // normal of longitudinal plane rotating along Y-axis
-    float n2[3];        // normal of latitudinal plane rotating along Z-axis
-    float v[3];         // direction vector intersecting 2 planes, n1 x n2
-    float a1;           // longitudinal angle along y-axis
-    float a2;           // latitudinal angle
-    float scale;
-
-    // rotate latitudinal plane from 45 to -45 degrees along Z-axis
-    for (unsigned int i = 0; i < pointsPerRow; ++i)
-    {
-        // normal for latitudinal plane
-        a2 = DEG2RAD * (45.0f - 90.0f * i / (pointsPerRow - 1));
-        n2[0] = -sin(a2);
-        n2[1] = cos(a2);
-        n2[2] = 0;
-
-        // rotate longitudinal plane from -45 to 45 along Y-axis
-        for (unsigned int j = 0; j < pointsPerRow; ++j)
-        {
-            // normal for longitudinal plane
-            a1 = DEG2RAD * (-45.0f + 90.0f * j / (pointsPerRow - 1));
-            n1[0] = -sin(a1);
-            n1[1] = 0;
-            n1[2] = -cos(a1);
-
-            // find direction vector of intersected line, n1 x n2
-            v[0] = n1[1] * n2[2] - n1[2] * n2[1];
-            v[1] = n1[2] * n2[0] - n1[0] * n2[2];
-            v[2] = n1[0] * n2[1] - n1[1] * n2[0];
-
-            // normalize direction vector
-            scale = computeScaleForLength(v, 1);
-            v[0] *= scale;
-            v[1] *= scale;
-            v[2] *= scale;
-
-            vertices.push_back(v[0]);
-            vertices.push_back(v[1]);
-            vertices.push_back(v[2]);
-
-            // DEBUG
-            //std::cout << "vertex: (" << v[0] << ", " << v[1] << ", " << v[2] << "), "
-            //          << sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]) << std::endl;
-        }
-    }
-
-    return vertices;
-}
-
-float Sphere::computeScaleForLength(const float v[3], float length)
-{
-    return length / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
 void Sphere::addVertex(float x, float y, float z)
@@ -292,4 +164,25 @@ void Sphere::addTexCoords(const float t1[2], const float t2[2], const float t3[2
     texCoords.insert(texCoords.end(), t2, t2 + 2);
     texCoords.insert(texCoords.end(), t3, t3 + 2);
     texCoords.insert(texCoords.end(), t4, t4 + 2);
+}
+
+void Sphere::buildInterleavedVertices()
+{
+    std::vector<float>().swap(interleavedVertices);
+
+    std::size_t i, j;
+    std::size_t count = vertices.size();
+    for (i = 0, j = 0; i < count; i += 3, j += 2)
+    {
+        interleavedVertices.push_back(vertices[i]);
+        interleavedVertices.push_back(vertices[i + 1]);
+        interleavedVertices.push_back(vertices[i + 2]);
+
+        interleavedVertices.push_back(normals[i]);
+        interleavedVertices.push_back(normals[i + 1]);
+        interleavedVertices.push_back(normals[i + 2]);
+
+        interleavedVertices.push_back(texCoords[j]);
+        interleavedVertices.push_back(texCoords[j + 1]);
+    }
 }
