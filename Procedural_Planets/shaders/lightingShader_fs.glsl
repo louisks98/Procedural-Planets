@@ -3,6 +3,7 @@
 in vec3 surface_position;
 in vec3 surface_normal;
 in vec2 texCoord;
+in float test;
 
 out vec4 FragColor;
 

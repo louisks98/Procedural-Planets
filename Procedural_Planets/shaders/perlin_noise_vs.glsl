@@ -181,7 +181,7 @@ float pnoise(vec3 P, vec3 rep)
 
 struct Settings
 {
-    float numLayers;
+    int numLayers;
     float strength;
     float baseRoughness;
     float roughness;
@@ -198,27 +198,38 @@ layout (location = 2) in vec2 aTexCoord;
 out vec3 surface_normal;
 out vec3 surface_position;
 out vec2 texCoord;
+out float test;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-float evaluate(vec3 pos, Settings continentSettings)
+//uniform Settings settings;
+
+uniform int numLayers;
+uniform float strength;
+uniform float baseRoughness;
+uniform float roughness;
+uniform float persistence;
+uniform vec3 center;
+uniform float minValue;
+
+float evaluate(vec3 pos)
 {
     float noise = 0;
-    float frequency = continentSettings.baseRoughness;
+    float frequency = baseRoughness;
     float amplitude = 1;
 
-    for (int i = 0; i < continentSettings.numLayers; i++)
+    for (int i = 0; i < numLayers; i++)
     {
-        float v = cnoise(pos * frequency + continentSettings.center);
+        float v = cnoise(pos * frequency);
         noise += (v + 1) * 0.5 * amplitude;
-        frequency *= continentSettings.roughness;
-        amplitude *= continentSettings.persistence;
+        frequency *= roughness;
+        amplitude *= persistence;
     }
 
-    noise = max(0, noise - continentSettings.minValue);
-    return noise * continentSettings.strength;
+    noise = max(0, noise - minValue);
+    return noise * strength;
 }
 
 void main()
@@ -229,16 +240,17 @@ void main()
     surface_position = vec3((view * model) * vec4(position, 1.0));
 
     Settings continentSettings;
-    continentSettings.numLayers = 5;
-    continentSettings.strength = 0.4;
-    continentSettings.baseRoughness = 0.67;
-    continentSettings.roughness = 2;
-    continentSettings.persistence = 1;
-    continentSettings.center = vec3(1.0, 0.4, 3.0);
-    continentSettings.minValue = 1.34;
+    // continentSettings.numLayers = 1;
+    // continentSettings.strength = 1;
+    // continentSettings.baseRoughness = 1;
+    // continentSettings.roughness = 2;
+    // continentSettings.persistence = 0.5;
+    // continentSettings.center = vec3(1.0, 1.0, 1.0);
+    // continentSettings.minValue = 0;
 
-    vec3 displacement = position * evaluate(position, continentSettings);
-    gl_Position = projection * view * model * vec4(displacement, 1.0);
+    //test = evaluate(position);
+    vec3 displacement = position * evaluate(position);
+    gl_Position = projection * view * model * vec4(1 + displacement, 1.0);
     //normal = aNormal;
     texCoord = aTexCoord;
 }
