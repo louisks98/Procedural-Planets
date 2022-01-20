@@ -5,6 +5,8 @@ Sphere::Sphere(float radius, int sub)
 {
     mesh = GeometrySphere(radius, sub);
 
+    model = glm::mat4(1.0f);
+
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);

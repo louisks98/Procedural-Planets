@@ -1,3 +1,6 @@
+// Base on the CubeSphere of Song Ho
+// Source : http://www.songho.ca/opengl/gl_sphere.html
+
 #pragma once
 
 #include <vector>
